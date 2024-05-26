@@ -1,0 +1,210 @@
+﻿@page "/"
+@rendermode InteractiveServer
+
+@using System.Threading.Tasks
+@using ServerClipboard_Web.Model
+@using ServerClipboard_Web.Service
+@using System.Threading
+@using System.Text.Json
+@using System.Text
+@using System.Timers;
+
+@inject ClipboardService ClipboardService
+@implements IDisposable
+
+<div id="div_master" class="mt-5 container-fluid">
+    <div class="row">
+        <div class="col">
+            <div class="jumbotron jumbotron-fluid">
+                <div class="container">
+                    <textarea class="form-control" style="height: calc(100vh - 250px); margin-bottom: 10px;"
+                              @bind="TextAreaContent">
+                    </textarea>
+
+                    <div id="div_buttons" class="mt-3 text-center">
+
+                        <button class="btn btn-warning my-2" @onclick="CopyToServer" disabled=@stateCopyToServe.IsDisabled>
+                            <i class="@stateCopyToServe.IconClassName"></i> @stateCopyToServe.Text
+                        </button>
+
+                        <button class="btn btn-primary my-2" @onclick="CopyFromLocalClipboard" disabled=@stateCopyFromLocalClipboard.IsDisabled>
+                            <i class="@stateCopyFromLocalClipboard.IconClassName"></i> @stateCopyFromLocalClipboard.Text
+                        </button>
+
+                        <button class="btn btn-success my-2" @onclick="LoadFromServer" disabled=@stateLoadFromServer.IsDisabled>
+                            <i class="@stateLoadFromServer.IconClassName"></i> @stateLoadFromServer.Text
+                        </button>
+
+                        <button class="btn btn-danger my-2" @onclick="ClearTextArea" disabled=@stateClearTextArea.IsDisabled>
+                            <i class="@stateClearTextArea.IconClassName"></i> @stateClearTextArea.Text
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+
+    //Temporizador pra ação em segundo plano
+    private System.Timers.Timer _timer = new System.Timers.Timer();
+    private bool _disposed = false;
+
+    //Text Area
+    private string? TextAreaContent { get; set; }
+    private Transmition transmition = new Transmition();
+
+    //Buttons
+    private int buttonTime = 1;
+    private CancellationTokenSource cts = new();
+    private record State(string Text, string IconClassName, bool IsDisabled = false);
+
+    private State stateLoadFromServer = new("Load from Server Clipboard", "bi bi-clipboard2-pulse-fill");
+    private State stateCopyToServe = new("Copy to Server Clipboard", "bi bi-clipboard-plus");
+    private State stateCopyFromLocalClipboard = new("Copy from local Clipboard", "bi bi-clipboard2-data");
+    private State stateClearTextArea = new("Clear", "bi bi-book");
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataFromServer();
+
+        _timer = new System.Timers.Timer(2000); // 2000 milissegundos = 2 segundos
+        _timer.Elapsed += async (sender, e) => await OnTimerElapsed(sender, e);
+        _timer.AutoReset = true;
+        _timer.Start();
+    }
+
+    #region "Timer"
+
+    private async Task OnTimerElapsed(object sender, ElapsedEventArgs e)
+    {
+
+        if (sender != null)
+        {
+            if (_disposed)
+            {
+                return;
+            }
+        }
+
+        await LoadDataFromServer();
+    }
+
+    #endregion
+
+    #region "Buttons"
+
+    private async Task LoadDataFromServer()
+    {
+        var response = await HttpClient.GetAsync("/api/clipboard/get");
+        if (response.IsSuccessStatusCode)
+        {
+            var content = await response.Content.ReadAsStringAsync();
+            var json = JsonSerializer.Deserialize<ClipboardResponse>(content);
+
+            if (json != null)
+            {
+                if (String.IsNullOrEmpty(json.Clipboard))
+                {
+                    json.Clipboard = String.Empty;
+                }
+                        
+                if (TextAreaContent != json.Clipboard)
+                {
+                    await InvokeAsync(() =>
+                    {
+                        TextAreaContent = json.Clipboard;
+                        StateHasChanged();
+                    });
+                }
+            }
+            
+        }
+    }
+
+    private async Task LoadFromServer()
+    {
+
+        var temp = stateLoadFromServer;
+        stateLoadFromServer = new("Loaded!", "bi bi-check", IsDisabled: true);
+        //-----------------------------------------------------
+
+        var response = await HttpClient.GetAsync("/api/clipboard/get");
+        if (response.IsSuccessStatusCode)
+        {
+            var content = await response.Content.ReadAsStringAsync();
+            var json = JsonSerializer.Deserialize<ClipboardResponse>(content);
+            
+            if (json != null)
+            {
+                TextAreaContent = json.Clipboard;
+            }
+            
+        }
+
+        await Task.Delay(TimeSpan.FromSeconds(buttonTime), cts.Token);
+        //-----------------------------------------------------
+        stateLoadFromServer = temp;
+    }
+
+    private async Task CopyToServer()
+    {
+        
+        var temp = stateCopyToServe;
+        stateCopyToServe = new("Copied!", "bi bi-check", IsDisabled: true);
+        //-----------------------------------------------------
+
+        transmition.Content = TextAreaContent;
+
+        var json = JsonSerializer.Serialize(transmition);
+        var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+        var response = await HttpClient.PostAsync("/api/clipboard/post", content);
+        var res = response.EnsureSuccessStatusCode();
+
+        await Task.Delay(TimeSpan.FromSeconds(buttonTime), cts.Token);
+        //-----------------------------------------------------
+        stateCopyToServe = temp;
+    }
+
+    private async Task CopyFromLocalClipboard()
+    {
+        var temp = stateCopyFromLocalClipboard;
+        stateCopyFromLocalClipboard = new("Copied!", "bi bi-check", IsDisabled: true);
+        //-----------------------------------------------------
+        TextAreaContent = await ClipboardService.ReadTextAsync();
+        await Task.Delay(TimeSpan.FromSeconds(buttonTime), cts.Token);
+        //-----------------------------------------------------
+        stateCopyFromLocalClipboard = temp;
+    }
+
+    private async Task ClearTextArea()
+    {
+        var temp = stateClearTextArea;
+        stateClearTextArea = new("Cleaned!", "bi bi-check", IsDisabled: true);
+        //-----------------------------------------------------
+        TextAreaContent = "";
+        await Task.Delay(TimeSpan.FromSeconds(buttonTime), cts.Token);
+        //-----------------------------------------------------
+        stateClearTextArea = temp;
+    }
+    
+    #endregion
+
+
+    public void Dispose()
+    {
+        // Cancel Task.Delay
+        cts.Cancel(); 
+        cts.Dispose();
+
+        // Timer Dispose
+        _disposed = true;
+        _timer?.Dispose();
+
+    }
+    
+} 

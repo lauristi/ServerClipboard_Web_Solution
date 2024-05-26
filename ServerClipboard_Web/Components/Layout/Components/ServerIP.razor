@@ -1,0 +1,38 @@
+﻿@using Microsoft.AspNetCore.Http
+
+@rendermode InteractiveServer
+@inject IHttpContextAccessor HttpContextAccessor
+
+<label class="text-light label label-warning" style="display: block;">@IpAddress</label>
+
+@code {
+    //Text Area
+    private string? IpAddress { get; set; }
+
+    protected override void OnInitialized()
+    {
+        string clientIP = string.Empty;
+        string serverIP = string.Empty;
+
+        if (HttpContextAccessor.HttpContext != null)
+        {
+            var connection = HttpContextAccessor.HttpContext.Connection;
+
+            if (connection?.RemoteIpAddress != null)
+            {
+                clientIP = connection.RemoteIpAddress.ToString();
+            }
+
+            if (connection?.LocalIpAddress != null)
+            {
+                serverIP = connection.LocalIpAddress.ToString();
+            }
+        }
+
+        //CORRECAO PARA LOCAL HOST
+        if (clientIP == "::1") clientIP = "Localhost";
+        if (serverIP == "::1") serverIP = "Localhost";
+
+        IpAddress = $"Server: {serverIP} / Client: {clientIP}";
+    }
+}

@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Remove="Components\Layout\NavMenu.razor" />
+    <Content Remove="Components\Pages\Counter.razor" />
+    <Content Remove="Components\Pages\Home.razor" />
+    <Content Remove="Components\Pages\Weather.razor" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Components\Layout\NavMenu.razor.css" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="wwwroot\image\" />
+    <Folder Include="wwwroot\bootstrap-icons\" />
+  </ItemGroup>
+
+</Project>
