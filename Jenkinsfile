@@ -10,7 +10,7 @@ pipeline {
         PROJECT_PATH_ARCHIVE = 'ServerClipboard_Web/ServerClipboard_Web.csproj'
         PUBLISH_PATH = 'ServerClipboard_Web/bin/Release/net8.0/publish'
         ARTIFACT_PATH = 'ServerClipboard_Web/Artifact'
-        DEPLOY_PATH = '/var/www/app/ServerClipboardProjects/ServerClipboard_Web'
+        DEPLOY_PATH = '/var/www/app/ServerProjects/ServerClipboard_Web'
         DOTNET_ROOT = '/opt/dotnet'
     }
 
