@@ -3,24 +3,35 @@ using ServerClipboard_Web.Service;
 using Microsoft.AspNetCore.HttpOverrides;
 using System.Net;
 
-var builder = WebApplication.CreateBuilder(args);
+var options = new WebApplicationOptions
+{
+    WebRootPath = "wwwroot", // já define o caminho correto no início
+    Args = args              // importante passar os args aqui também
+};
+
+var builder = WebApplication.CreateBuilder(options); // <== USANDO OS OPTIONS AQUI
+
+var configuration = builder.Configuration;
+
+var apiBaseAddress = configuration["ConnectionSettings:ApiBaseAddress"];
+var bindAddress = configuration["ConnectionSettings:BindAddress"];
+var bindPort = int.Parse(configuration["ConnectionSettings:BindPort"] ?? "5021");
 
 //========================================================================================================
-// Configure o Kestrel para ouvir em todas as interfaces de rede na porta 5020
-// Adiciona o middleware UseStaticWebAssets para servir arquivos estáticos, incluindo CSS, em produção
+// Configure o Kestrel para ouvir no IP e porta configurados
 //========================================================================================================
 
 if (!builder.Environment.IsDevelopment())
 {
-    builder.WebHost.UseWebRoot("wwwroot")
-                   .UseStaticWebAssets();
+    builder.WebHost.UseStaticWebAssets();
 
     builder.WebHost.ConfigureKestrel(options =>
     {
-        options.Listen(IPAddress.Parse("192.168.0.156"), 5021);
+        options.Listen(IPAddress.Parse(bindAddress), bindPort);
     });
 }
 //========================================================================================================
+
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
@@ -36,7 +47,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped(sp =>
     new HttpClient
     {
-        BaseAddress = new Uri("http://192.168.0.156:5020")
+        BaseAddress = new Uri(apiBaseAddress)
     });
 //========================================================================================================
 
