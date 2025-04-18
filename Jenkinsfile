@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         LOG_FILE = "pipeline.log"
-        GIT_REPO = 'github.com/lauristi/ServerClipboard_Web_Solution.git'
+        GIT_REPO = 'https://github.com/lauristi/ServerClipboard_Web_Solution.git'
         BRANCH = 'master'
         PROJECT_NAME = 'ServerClipboard_Web'
         SOLUTION_PATH = 'ServerClipboard_Web_Solution'
@@ -29,7 +29,7 @@ pipeline {
                 script {
                     withCredentials([string(credentialsId: 'JENKINS_TOKEN', variable: 'GITHUB_TOKEN')]) {
                         sh """
-                            git clone https://${GITHUB_TOKEN}@${GIT_REPO}
+                            git clone --depth 1 https://${GITHUB_TOKEN}@${GIT_REPO}
                             cd ${env.SOLUTION_PATH}
                             git checkout ${BRANCH}
                         """
