@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         LOG_FILE = "pipeline.log"
-        GIT_REPO = 'https://github.com/lauristi/ServerClipboard_Web_Solution.git'
+        GIT_REPO = 'github.com/lauristi/ServerClipboard_Web_Solution.git'
         BRANCH = 'master'
         PROJECT_NAME = 'ServerClipboard_Web'
         SOLUTION_PATH = 'ServerClipboard_Web_Solution'
