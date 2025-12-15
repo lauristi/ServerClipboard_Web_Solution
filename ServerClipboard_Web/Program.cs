@@ -95,4 +95,5 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
 //REMOVIDO PARA EVITAR ERRO DE AUTENTICACAO NO  Microsoft.AspNetCore.Authentication.IAuthenticationSchemeProvider No Raspbery PI
 //app.UseAuthentication();
 
+
 app.Run();
