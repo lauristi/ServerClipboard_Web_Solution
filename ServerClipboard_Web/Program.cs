@@ -1,48 +1,53 @@
+﻿using Microsoft.AspNetCore.HttpOverrides;
 using ServerClipboard_Web.Components;
 using ServerClipboard_Web.Service;
-using Microsoft.AspNetCore.HttpOverrides;
-using System.Net;
 
 var options = new WebApplicationOptions
 {
-    WebRootPath = "wwwroot", // j� define o caminho correto no in�cio
-    Args = args              // importante passar os args aqui tamb�m
+    WebRootPath = "wwwroot", // já define o caminho correto no início
+    Args = args              // importante passar os args aqui também
 };
 
 var builder = WebApplication.CreateBuilder(options); // <== USANDO OS OPTIONS AQUI
 
 var configuration = builder.Configuration;
 
-var apiBaseAddress = configuration["ConnectionSettings:ApiBaseAddress"];
-var bindAddress = configuration["ConnectionSettings:BindAddress"];
-var bindPort = int.Parse(configuration["ConnectionSettings:BindPort"] ?? "5021");
+// URL da API externa (Server_API - porta 5020)
+var apiBaseAddress =
+    configuration["ConnectionSettings:ApiBaseAddress"]
+    ?? throw new InvalidOperationException(
+        "ConnectionSettings:ApiBaseAddress não configurado");
 
-//========================================================================================================
-// Configure o Kestrel para ouvir no IP e porta configurados
-//========================================================================================================
+// Porta do Frontend (ServerBB_Web)
+var bindPort =
+    int.Parse(configuration["ConnectionSettings:BindPort"] ?? "5021");
+
+// Kestrel
+// ✔️ Development: Visual Studio / launchSettings controlam
+// ✔️ Production: Kestrel escuta na porta configurada
+
+builder.WebHost.ConfigureKestrel(options =>
+{
+    // escuta em todas as interfaces
+    options.ListenAnyIP(bindPort);
+});
 
 if (!builder.Environment.IsDevelopment())
 {
+    // Necessário após publish
     builder.WebHost.UseStaticWebAssets();
-
-    builder.WebHost.ConfigureKestrel(options =>
-    {
-        options.Listen(IPAddress.Parse(bindAddress), bindPort);
-    });
 }
-//========================================================================================================
-
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
                 .AddInteractiveServerComponents();
 
-// SERVI�OS PARA ACESSO AO CLIPBOARD E  RECUPERAR O IP DO CONTEXTO
+// SERVIÇOS PARA ACESSO AO CLIPBOARD E  RECUPERAR O IP DO CONTEXTO
 builder.Services.AddScoped<ClipboardService>();
 builder.Services.AddHttpContextAccessor();
 
 //========================================================================================================
-// ENDERECO PARA A ServerClipboard_API (altere de acordo com sua implanta��o)
+// ENDERECO PARA A ServerClipboard_API (altere de acordo com sua implantação)
 //========================================================================================================
 builder.Services.AddScoped(sp =>
     new HttpClient
@@ -54,7 +59,7 @@ builder.Services.AddScoped(sp =>
 var app = builder.Build();
 
 ////=============================================================================================
-////CODIGO PARA SERVIR ARQUIVOS ESTATICOS FORA DO PADR�O MIME
+////CODIGO PARA SERVIR ARQUIVOS ESTATICOS FORA DO PADRÃO MIME
 ////=============================================================================================
 //var provider = new FileExtensionContentTypeProvider();
 //provider.Mappings["{EXTENSION}"] = "{CONTENT TYPE}";
